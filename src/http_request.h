@@ -12,8 +12,12 @@ typedef struct {
     char *url;
     struct hashmap *headers;
     char *body;
+    int last_call_was_on_header_field;
+    char *header_field;
 } http_request;
 
+void parser_settings_init();
 http_request *request_new();
-int request_parser(const char *data);
+int parse_request(http_request *request, const char *data);
 void request_free(http_request *request);
+char *get_header_value(http_request *request, const char *field);
