@@ -1,3 +1,5 @@
+#include "http_request.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,21 +9,28 @@
 #include <arpa/inet.h>
 #include <ev.h>
 
-#define MAXLINE 80
+#define BUFFER_SIZE 2048
 #define LOGBACK 5
+#define PORT 5000
+
+#define BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n\r\n"
+#define HELLO "HTTP/1.1 200 OK\r\n\r\nHello, World!"
 
 static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
-static void parser_data(EV_P_ ev_io *watcher, int revents);
+static void parser_request(EV_P_ ev_io *watcher, int revents);
+static void response(EV_P_ ev_io *watcher, int revents);
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fputs("usage: ./server {port}\n", stderr);
-        exit(1);
+    int port;
+
+    if (argc == 2) {
+        port = atoi(argv[1]);
+    } else {
+        port = PORT;
     }
 
-    int port = atoi(argv[1]);
     int server_fd = run_serve(port);
     printf("HTTP server is running at %d\n", port);
 
@@ -46,29 +55,57 @@ static void accept_request(EV_P_ ev_io *watcher, int revents) {
     }
 
     printf("--- accept connection from %s ---\n", inet_ntop(AF_INET, &client_addr.sin_addr, addr_str, sizeof(addr_str)));
-    ev_io *client_watcher = malloc(sizeof(ev_io));
-    memset(client_watcher, 0, sizeof(ev_io));
-    ev_io_init(client_watcher, parser_data, client_fd, EV_READ);
-    ev_io_start(EV_A_ client_watcher);
+    http_request *request = request_new();
+    request->client_fd = client_fd;
+    request->client_addr = client_addr;
+    ev_io_init(&request->read_watcher, parser_request, client_fd, EV_READ);
+    ev_io_start(EV_A_ &request->read_watcher);
 }
 
-static void parser_data(EV_P_ ev_io *watcher, int revents) {
-    int client_fd = watcher->fd;
-    char buf[MAXLINE];
+static void parser_request(EV_P_ ev_io *watcher, int revents) {
+    http_request *request = REQUEST_FROM_READ_WATCHER(watcher);
+    char *data = NULL;
+    char buf[BUFFER_SIZE];
     bzero(buf, sizeof(buf));
-    int n = recv(client_fd, buf, MAXLINE, 0);
-    if (n < 0) {
-        ev_io_stop(EV_A_ watcher);
-        free(watcher);
-        close(client_fd);
-    } else if (0 == n) {
-        ev_io_stop(EV_A_ watcher);
-        free(watcher);
-        close(client_fd);
-    } else {
-        printf("received message: %s\n", buf);
-        send(client_fd, buf, strlen(buf) < MAXLINE ? strlen(buf) : MAXLINE, 0);
+    int nread = 0;
+    int data_len = 0;
+    do {
+        nread = read(watcher->fd, &buf, BUFFER_SIZE);
+        data_len += nread;
+        if (data_len < BUFFER_SIZE) {
+            buf[nread] = '\0';
+        }
+
+        if (NULL == data) {
+            data = malloc(nread+1);
+            memcpy(data, buf, nread);
+        } else {
+            data = realloc(data, data_len+1);
+            memcpy(data + data_len - nread, buf, nread);
+        }
+    }  while (nread == BUFFER_SIZE);
+
+    if (1 == parse_request(request, data)) {
+        request->is_bad_request = true;
     }
+
+    ev_io_stop(EV_A_ watcher);
+    ev_io_init(&request->write_watcher, response, watcher->fd, EV_WRITE);
+    ev_io_start(EV_A_ &request->write_watcher);
+}
+
+static void response(EV_P_ ev_io *watcher, int revents) {
+    http_request *request = REQUEST_FROM_WRITE_WATCHER(watcher);
+    if (request->is_bad_request) {
+        send(watcher->fd, BAD_REQUEST, strlen(BAD_REQUEST), 0);
+        return;
+    } else {
+        send(watcher->fd, HELLO, strlen(HELLO), 0);
+    }
+    
+    ev_io_stop(EV_A_ watcher);
+    close(request->client_fd);
+    request_free(request);
 }
 
 static int run_serve(int port) {

@@ -66,32 +66,39 @@ int parse_request(http_request *request, const char *data) {
     request->method = malloc(sizeof(char)*strlen(method)+1);
     sprintf(request->method, "%s\0", method);
     free(data);
+    data = NULL;
     return 0;
 }
 
 void request_free(http_request *request) {
     if (request->headers != NULL) {
         hashmap_free(request->headers);
+        request->headers = NULL;
     }
 
     if (request->method != NULL) {
         free(request->method);
+        request->method = NULL;
     }
 
     if (request->url != NULL) {
         free(request->url);
+        request->url = NULL;
     }
 
     if (request->body != NULL) {
         free(request->body);
+        request->body = NULL;
     }
     
     if (request->header_field != NULL) {
         free(request->header_field);
+        request->header_field = NULL;
     }
 
     if (request != NULL) {
         free(request);
+        request = NULL;
     }
 }
 
@@ -154,9 +161,6 @@ static int on_status(http_parser* parser, const char* at, size_t length) {
 
 static int on_header_field(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->last_call_was_on_header_field = true;
-    if ((REQUEST)->header_field != NULL) {
-        free((REQUEST)->header_field);
-    }
 
     (REQUEST)->header_field = malloc(sizeof(char)*(length+1));
     memset((REQUEST)->header_field, 0, sizeof((REQUEST)->header_field));
