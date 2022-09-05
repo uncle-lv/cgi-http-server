@@ -10,16 +10,32 @@
 #include <ev.h>
 
 #define BUFFER_SIZE 2048
-#define LOGBACK 5
+#define HEADER_BUFFER_SIZE 256
+#define LOGBACK 20
 #define PORT 5000
+#define WWW_PATH "../www"
 
-#define BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n\r\n"
+#define BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n"
+
+#define NOT_FOUND "HTTP/1.1 404 Not Found\r\n\
+Content-type: text/html\r\n\
+Content-length: 9\r\n\r\n\
+Not Found"
+
+#define NOT_IMPLE "HTTP/1.1 501 Not Implemented\r\n\r\n"
+
+#define RESPONSE_HEADERS "HTTP/1.1 200 OK\r\n\
+Content-type: %s\r\n\
+Content-length: %ld\r\n\r\n"
+
 #define HELLO "HTTP/1.1 200 OK\r\n\r\nHello, World!"
 
 static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
 static void parser_request(EV_P_ ev_io *watcher, int revents);
 static void response(EV_P_ ev_io *watcher, int revents);
+static void send_file(http_request *request, const char *path);
+static long get_file_length(const FILE *file);
 
 
 int main(int argc, char *argv[]) {
@@ -32,7 +48,6 @@ int main(int argc, char *argv[]) {
     }
 
     int server_fd = run_serve(port);
-    printf("HTTP server is running at %d\n", port);
 
     struct ev_loop *loop = EV_DEFAULT;
     ev_io server_watcher;
@@ -95,19 +110,80 @@ static void parser_request(EV_P_ ev_io *watcher, int revents) {
 }
 
 static void response(EV_P_ ev_io *watcher, int revents) {
+    char path[256];
     http_request *request = REQUEST_FROM_WRITE_WATCHER(watcher);
+
     if (request->is_bad_request) {
         send(watcher->fd, BAD_REQUEST, strlen(BAD_REQUEST), 0);
-        return;
+        goto finish;
     } else {
-        send(watcher->fd, HELLO, strlen(HELLO), 0);
+        if (strcasecmp(request->method, "GET") && strcasecmp(request->method, "POST")) {
+            send(watcher->fd, NOT_IMPLE, strlen(NOT_IMPLE), 0);
+            goto finish;
+        }
+
+        strcpy(path, WWW_PATH);
+        strcat(path, request->url);
+
+        if (0 == strcasecmp(request->method, "GET")) {
+            if (0 == strcasecmp(path, "/")) {
+                strcat(path, "index.html");
+            }
+
+            struct stat st;
+            if (-1 == stat(path, &st)) {
+                send(watcher->fd, NOT_FOUND, strlen(NOT_FOUND), 0);
+                goto finish;
+            } else {
+                if ((st.st_mode & S_IFMT) == S_IFDIR) {
+                    strcat(path, "/index.html");
+                }
+            }
+
+            send_file(request, path);
+            goto finish;
+        }
     }
-    
+
+finish:
     ev_io_stop(EV_A_ watcher);
     close(request->client_fd);
     request_free(request);
 }
 
+static void send_file(http_request *request, const char *path) {
+    FILE *file = NULL;
+    char buf[BUFFER_SIZE];
+
+    file = fopen(path, "r");
+    if (NULL == file) {
+        send(request->client_fd, NOT_FOUND, strlen(NOT_FOUND), 0);
+    } else {
+        sprintf(buf, RESPONSE_HEADERS, "text/html", get_file_length(file));
+        send(request->client_fd, buf, strlen(buf), 0);
+        fgets(buf, BUFFER_SIZE, file);
+        send(request->client_fd, buf, strlen(buf), 0);
+        while (!feof(file)) {
+            fgets(buf, BUFFER_SIZE, file);
+            send(request->client_fd, buf, strlen(buf), 0);
+        }
+    }
+}
+
+static long get_file_length(const FILE *file) {
+    long cur = ftell(file);
+    fseek(file, 0, SEEK_END);
+    long file_length = ftell(file);
+    fseek(file, cur, SEEK_SET);
+    return file_length;
+}
+
+/**
+ * @brief 启动HTTP服务器
+ * 
+ * @param port 服务器端口号
+ * @return int 服务器文件描述符
+ */
 static int run_serve(int port) {
     struct sockaddr_in server_addr;
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -118,5 +194,7 @@ static int run_serve(int port) {
 
     bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     listen(server_fd, LOGBACK);
+    parser_settings_init();
+    printf("HTTP server is running at %d\n", server_addr.sin_port);
     return server_fd;
 }

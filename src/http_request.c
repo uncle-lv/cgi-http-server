@@ -64,7 +64,7 @@ int parse_request(http_request *request, const char *data) {
 
     char *method = http_method_str(request->parser.method);
     request->method = malloc(sizeof(char)*strlen(method)+1);
-    sprintf(request->method, "%s\0", method);
+    sprintf(request->method, "%s", method);
     free(data);
     data = NULL;
     return 0;
@@ -151,7 +151,7 @@ static int on_chunk_complete(http_parser* parser) {
 static int on_url(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->url = malloc(sizeof(char)*(length+1));
     memset((REQUEST)->url, 0, sizeof((REQUEST)->url));
-    sprintf((REQUEST)->url, "%.*s\0", (int)length, at);
+    sprintf((REQUEST)->url, "%.*s", (int)length, at);
     return 0;
 }
 
@@ -164,7 +164,7 @@ static int on_header_field(http_parser* parser, const char* at, size_t length) {
 
     (REQUEST)->header_field = malloc(sizeof(char)*(length+1));
     memset((REQUEST)->header_field, 0, sizeof((REQUEST)->header_field));
-    sprintf((REQUEST)->header_field, "%.*s\0", (int)length, at);
+    sprintf((REQUEST)->header_field, "%.*s", (int)length, at);
     return 0;
 }
 
@@ -172,7 +172,7 @@ static int on_header_value(http_parser* parser, const char* at, size_t length) {
     char *value = malloc(sizeof(char)*(length+1));
     memset(value, 0, sizeof(value));
     if ((REQUEST)->last_call_was_on_header_field && (REQUEST)->header_field != NULL) {
-        sprintf(value, "%.*s\0", (int)length, at);
+        sprintf(value, "%.*s", (int)length, at);
         set_or_append_header((REQUEST), (REQUEST)->header_field, value);
     }
 
@@ -185,7 +185,7 @@ static int on_header_value(http_parser* parser, const char* at, size_t length) {
 static int on_body(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->body = malloc(sizeof(char)*(length+1));
     memset((REQUEST)->body, 0, sizeof((REQUEST)->body));
-    sprintf((REQUEST)->body, "%.*s\0", (int)length, at);
+    sprintf((REQUEST)->body, "%.*s", (int)length, at);
     return 0;
 }
 
