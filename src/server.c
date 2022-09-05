@@ -15,20 +15,9 @@
 #define PORT 5000
 #define WWW_PATH "../www"
 
-#define BAD_REQUEST "HTTP/1.1 400 Bad Request\r\n"
-
-#define NOT_FOUND "HTTP/1.1 404 Not Found\r\n\
-Content-type: text/html\r\n\
-Content-length: 9\r\n\r\n\
-Not Found"
-
-#define NOT_IMPLE "HTTP/1.1 501 Not Implemented\r\n\r\n"
-
 #define RESPONSE_HEADERS "HTTP/1.1 200 OK\r\n\
 Content-type: %s\r\n\
 Content-length: %ld\r\n\r\n"
-
-#define HELLO "HTTP/1.1 200 OK\r\n\r\nHello, World!"
 
 static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
@@ -36,6 +25,10 @@ static void parser_request(EV_P_ ev_io *watcher, int revents);
 static void response(EV_P_ ev_io *watcher, int revents);
 static void send_file(http_request *request, const char *path);
 static long get_file_length(const FILE *file);
+static void response_400(http_request *request);
+static void response_404(http_request *request);
+static void response_500(http_request *request);
+static void response_501(http_request *request);
 
 
 int main(int argc, char *argv[]) {
@@ -100,7 +93,7 @@ static void parser_request(EV_P_ ev_io *watcher, int revents) {
         }
     }  while (nread == BUFFER_SIZE);
 
-    if (1 == parse_request(request, data)) {
+    if (0 != parse_request(request, data)) {
         request->is_bad_request = true;
     }
 
@@ -114,11 +107,11 @@ static void response(EV_P_ ev_io *watcher, int revents) {
     http_request *request = REQUEST_FROM_WRITE_WATCHER(watcher);
 
     if (request->is_bad_request) {
-        send(watcher->fd, BAD_REQUEST, strlen(BAD_REQUEST), 0);
+        response_400(request);
         goto finish;
     } else {
         if (strcasecmp(request->method, "GET") && strcasecmp(request->method, "POST")) {
-            send(watcher->fd, NOT_IMPLE, strlen(NOT_IMPLE), 0);
+            response_501(request);
             goto finish;
         }
 
@@ -132,7 +125,7 @@ static void response(EV_P_ ev_io *watcher, int revents) {
 
             struct stat st;
             if (-1 == stat(path, &st)) {
-                send(watcher->fd, NOT_FOUND, strlen(NOT_FOUND), 0);
+                response_404(request);
                 goto finish;
             } else {
                 if ((st.st_mode & S_IFMT) == S_IFDIR) {
@@ -142,6 +135,8 @@ static void response(EV_P_ ev_io *watcher, int revents) {
 
             send_file(request, path);
             goto finish;
+        } else {
+            
         }
     }
 
@@ -157,7 +152,7 @@ static void send_file(http_request *request, const char *path) {
 
     file = fopen(path, "r");
     if (NULL == file) {
-        send(request->client_fd, NOT_FOUND, strlen(NOT_FOUND), 0);
+        response_404(request);
     } else {
         sprintf(buf, RESPONSE_HEADERS, "text/html", get_file_length(file));
         send(request->client_fd, buf, strlen(buf), 0);
@@ -178,6 +173,38 @@ static long get_file_length(const FILE *file) {
     return file_length;
 }
 
+static void response_400(http_request *request) {
+    char path[128];
+    memset(path, 0, sizeof(path));
+    strcat(path, WWW_PATH);
+    strcat(path, "/400.html");
+    send_file(request, path);
+}
+
+static void response_404(http_request *request) {
+    char path[128];
+    memset(path, 0, sizeof(path));
+    strcat(path, WWW_PATH);
+    strcat(path, "/404.html");
+    send_file(request, path);
+}
+
+static void response_500(http_request *request) {
+    char path[128];
+    memset(path, 0, sizeof(path));
+    strcat(path, WWW_PATH);
+    strcat(path, "/500.html");
+    send_file(request, path);
+}
+
+static void response_501(http_request *request) {
+    char path[128];
+    memset(path, 0, sizeof(path));
+    strcat(path, WWW_PATH);
+    strcat(path, "/501.html");
+    send_file(request, path);
+}
+
 /**
  * @brief 启动HTTP服务器
  * 
@@ -195,6 +222,6 @@ static int run_serve(int port) {
     bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     listen(server_fd, LOGBACK);
     parser_settings_init();
-    printf("HTTP server is running at %d\n", server_addr.sin_port);
+    printf("HTTP server is running at %d\n", port);
     return server_fd;
 }

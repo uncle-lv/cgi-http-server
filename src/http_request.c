@@ -59,7 +59,7 @@ int parse_request(http_request *request, const char *data) {
     size_t data_len = strlen(data);
     size_t nparsed = http_parser_execute(&request->parser, &parser_settings, data, data_len);
     if (nparsed != data_len) {
-        return 1;
+        return -1;
     }
 
     char *method = http_method_str(request->parser.method);
