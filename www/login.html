@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CGI Server</title>
+    <title>Login</title>
     <style>
         body {
             text-align: center;
@@ -12,7 +12,10 @@
     </style>
 </head>
 <body>
-    <h1>Welcome to CGI Server!</h1>
-    <p>If you see this page, the CGI Server is running!</p>
+    <h1>Please Input Your Name</h1>
+    <form action="hello.cgi" method="POST">
+        <input type="text" name="name">
+        <input type="submit">
+    </form>
 </body>
 </html>

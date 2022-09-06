@@ -7,13 +7,19 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 #include <ev.h>
+
+#define STDIN   0
+#define STDOUT  1
+#define STDERR  2
 
 #define BUFFER_SIZE 2048
 #define HEADER_BUFFER_SIZE 256
 #define LOGBACK 20
 #define PORT 5000
 #define WWW_PATH "../www"
+#define CGI_PATH "/cgi-bin"
 
 #define RESPONSE_HEADERS "HTTP/1.1 200 OK\r\n\
 Content-type: %s\r\n\
@@ -24,7 +30,8 @@ static void accept_request(EV_P_ ev_io *watcher, int revents);
 static void parser_request(EV_P_ ev_io *watcher, int revents);
 static void response(EV_P_ ev_io *watcher, int revents);
 static void send_file(http_request *request, const char *path);
-static long get_file_length(const FILE *file);
+static long get_file_length(FILE *file);
+static int execute_cgi(http_request *request, const char *path);
 static void response_400(http_request *request);
 static void response_404(http_request *request);
 static void response_500(http_request *request);
@@ -116,9 +123,9 @@ static void response(EV_P_ ev_io *watcher, int revents) {
         }
 
         strcpy(path, WWW_PATH);
-        strcat(path, request->url);
 
         if (0 == strcasecmp(request->method, "GET")) {
+            strcat(path, request->url);
             if (0 == strcasecmp(path, "/")) {
                 strcat(path, "index.html");
             }
@@ -136,7 +143,9 @@ static void response(EV_P_ ev_io *watcher, int revents) {
             send_file(request, path);
             goto finish;
         } else {
-            
+            strcat(path, CGI_PATH);
+            strcat(path, request->url);
+            execute_cgi(request, path);
         }
     }
 
@@ -165,12 +174,74 @@ static void send_file(http_request *request, const char *path) {
     }
 }
 
-static long get_file_length(const FILE *file) {
+static long get_file_length(FILE *file) {
     long cur = ftell(file);
     fseek(file, 0, SEEK_END);
     long file_length = ftell(file);
     fseek(file, cur, SEEK_SET);
     return file_length;
+}
+
+static int execute_cgi(http_request *request, const char *path) {
+    char buf[BUFFER_SIZE];
+    int cgi_output[2];
+    int cgi_input[2];
+    char content_length[16];
+    pid_t pid;
+    int status;
+    int i;
+
+    memset(buf, 0, BUFFER_SIZE);
+    memset(content_length, 0, sizeof(content_length));
+
+    if (pipe(cgi_output) < 0) {
+        return -1;
+    }
+    
+    if (pipe(cgi_input) < 0) {
+        return -1;
+    }
+
+    if ((pid = fork()) < 0) {
+        return -1;
+    }
+
+    sprintf(buf, "HTTP/1.1 200 OK\r\n");
+    send(request->client_fd, buf, strlen(buf), 0);
+    printf("send: %s\n", buf);
+    if (0 == pid) {
+        dup2(cgi_output[1], STDOUT);
+        dup2(cgi_input[0], STDIN);
+        close(cgi_output[0]);
+        close(cgi_input[1]);
+
+        setenv("REQUEST_METHOD", request->method, 1);
+        if (0 == strcasecmp(request->method, "GET")) {
+            setenv("QUERY_STRING", "", 1);
+        } else {
+            sprintf(content_length, "%d", strlen(request->body));
+            setenv("CONTENT_LENGTH", content_length, 1);
+        }
+
+        if (-1 == execl(path, NULL)) {
+            response_500(request);
+        }
+        exit(0);
+    } else {
+        close(cgi_output[1]);
+        close(cgi_input[0]);
+        if (0 == strcasecmp(request->method, "POST")) {
+            write(cgi_input[1], request->body, strlen(request->body));
+        }
+
+        while (read(cgi_output[0], buf, BUFFER_SIZE) > 0) {
+            send(request->client_fd, buf, BUFFER_SIZE, 0);
+        }
+
+        close(cgi_output[0]);
+        close(cgi_input[0]);
+        waitpid(pid, &status, 0);
+    }
 }
 
 static void response_400(http_request *request) {
