@@ -1,4 +1,4 @@
-GET /index.htm HTTP/1.1
+GET /index.html HTTP/1.1
 Host: sample.com
 Accept: text/html
 Accept-Language: en-us

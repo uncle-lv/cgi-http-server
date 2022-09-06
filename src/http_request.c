@@ -56,6 +56,8 @@ http_request *request_new() {
 }
 
 int parse_request(http_request *request, const char *data) {
+    char suffix[16];
+    memset(suffix, 0, sizeof(suffix));
     size_t data_len = strlen(data);
     size_t nparsed = http_parser_execute(&request->parser, &parser_settings, data, data_len);
     if (nparsed != data_len) {
@@ -65,6 +67,10 @@ int parse_request(http_request *request, const char *data) {
     char *method = http_method_str(request->parser.method);
     request->method = malloc(sizeof(char)*strlen(method)+1);
     sprintf(request->method, "%s", method);
+    sscanf(request->url, "%*[^.].%s", suffix);
+    if (0 == strcasecmp(suffix, "cgi")) {
+        request->is_cgi = 1;
+    }
     free(data);
     data = NULL;
     return 0;

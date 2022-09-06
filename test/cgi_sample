@@ -1,0 +1,6 @@
+POST /hello.cgi HTTP/1.1
+Host: sample.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 13
+
+say=Hi&

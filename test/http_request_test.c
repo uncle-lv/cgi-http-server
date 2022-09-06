@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
     printf("method: %s\n", request->method);
     printf("url: %s\n", request->url);
     printf("body: %s\n", request->body);
+    printf("is cgi: %d\n", request->is_cgi);
     puts("*** get header value ***");
     printf("header: %s\n", get_header_value(request, "Host"));
     request_free(request);

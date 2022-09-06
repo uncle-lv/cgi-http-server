@@ -21,6 +21,7 @@ typedef struct {
     struct hashmap *headers;
     char *body;
 
+    int is_cgi;
     int is_bad_request;
     int last_call_was_on_header_field;
     char *header_field;
