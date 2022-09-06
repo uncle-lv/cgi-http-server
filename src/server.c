@@ -124,8 +124,8 @@ static void response(EV_P_ ev_io *watcher, int revents) {
 
         strcpy(path, WWW_PATH);
 
-        if (0 == strcasecmp(request->method, "GET")) {
-            strcat(path, request->url);
+        if (!request->is_cgi) {
+            strcat(path, request->path);
             if (0 == strcasecmp(path, "/")) {
                 strcat(path, "index.html");
             }
@@ -144,7 +144,7 @@ static void response(EV_P_ ev_io *watcher, int revents) {
             goto finish;
         } else {
             strcat(path, CGI_PATH);
-            strcat(path, request->url);
+            strcat(path, request->path);
             execute_cgi(request, path);
         }
     }
@@ -189,7 +189,6 @@ static int execute_cgi(http_request *request, const char *path) {
     char content_length[16];
     pid_t pid;
     int status;
-    int i;
 
     memset(buf, 0, BUFFER_SIZE);
     memset(content_length, 0, sizeof(content_length));
@@ -217,13 +216,14 @@ static int execute_cgi(http_request *request, const char *path) {
 
         setenv("REQUEST_METHOD", request->method, 1);
         if (0 == strcasecmp(request->method, "GET")) {
-            setenv("QUERY_STRING", "", 1);
+            setenv("QUERY_STRING", request->query_string, 1);
         } else {
             sprintf(content_length, "%d", strlen(request->body));
             setenv("CONTENT_LENGTH", content_length, 1);
         }
 
         if (-1 == execl(path, NULL)) {
+            perror("execl: ");
             response_500(request);
         }
         exit(0);

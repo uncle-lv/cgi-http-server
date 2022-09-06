@@ -1,0 +1,4 @@
+GET /index.html?name=uncle-lv&type=github HTTP/1.1
+Host: sample.com
+Accept: text/html
+Accept-Language: en-us

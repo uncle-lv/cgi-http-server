@@ -57,7 +57,8 @@ http_request *request_new() {
 
 int parse_request(http_request *request, const char *data) {
     char suffix[16];
-    memset(suffix, 0, sizeof(suffix));
+    bzero(suffix, sizeof(suffix));
+    bzero(request->query_string, sizeof(request->query_string));
     size_t data_len = strlen(data);
     size_t nparsed = http_parser_execute(&request->parser, &parser_settings, data, data_len);
     if (nparsed != data_len) {
@@ -65,9 +66,10 @@ int parse_request(http_request *request, const char *data) {
     }
 
     char *method = http_method_str(request->parser.method);
-    request->method = malloc(sizeof(char)*strlen(method)+1);
     sprintf(request->method, "%s", method);
-    sscanf(request->url, "%*[^.].%s", suffix);
+    sscanf(request->url, "%*[^.].%3s", suffix);
+    sscanf(request->url, "%*[^?]?%s", request->query_string);
+    sscanf(request->url, "%[^?]", request->path);
     if (0 == strcasecmp(suffix, "cgi")) {
         request->is_cgi = 1;
     }
@@ -82,24 +84,9 @@ void request_free(http_request *request) {
         request->headers = NULL;
     }
 
-    if (request->method != NULL) {
-        free(request->method);
-        request->method = NULL;
-    }
-
-    if (request->url != NULL) {
-        free(request->url);
-        request->url = NULL;
-    }
-
     if (request->body != NULL) {
         free(request->body);
         request->body = NULL;
-    }
-    
-    if (request->header_field != NULL) {
-        free(request->header_field);
-        request->header_field = NULL;
     }
 
     if (request != NULL) {
@@ -132,13 +119,13 @@ static uint64_t request_hash(const void *item, uint64_t seed0, uint64_t seed1) {
 
 static int on_message_begin(http_parser* parser) {
     (REQUEST)->last_call_was_on_header_field = false;
-    (REQUEST)->header_field = NULL;
+    bzero((REQUEST)->header_field, sizeof((REQUEST)->header_field));
     return 0;
 }
 
 static int on_headers_complete(http_parser* parser) {
-    (REQUEST)->last_call_was_on_header_field = false;
-    (REQUEST)->header_field = NULL;
+    (REQUEST)->last_call_was_on_header_field = false;    
+    bzero((REQUEST)->header_field, sizeof((REQUEST)->header_field));
     return 0;
 }
 
@@ -155,8 +142,7 @@ static int on_chunk_complete(http_parser* parser) {
 }
 
 static int on_url(http_parser* parser, const char* at, size_t length) {
-    (REQUEST)->url = malloc(sizeof(char)*(length+1));
-    memset((REQUEST)->url, 0, sizeof((REQUEST)->url));
+    bzero((REQUEST)->url, sizeof((REQUEST)->url));
     sprintf((REQUEST)->url, "%.*s", (int)length, at);
     return 0;
 }
@@ -167,9 +153,7 @@ static int on_status(http_parser* parser, const char* at, size_t length) {
 
 static int on_header_field(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->last_call_was_on_header_field = true;
-
-    (REQUEST)->header_field = malloc(sizeof(char)*(length+1));
-    memset((REQUEST)->header_field, 0, sizeof((REQUEST)->header_field));
+    bzero((REQUEST)->header_field, sizeof((REQUEST)->header_field));
     sprintf((REQUEST)->header_field, "%.*s", (int)length, at);
     return 0;
 }
@@ -178,19 +162,20 @@ static int on_header_value(http_parser* parser, const char* at, size_t length) {
     char *value = malloc(sizeof(char)*(length+1));
     memset(value, 0, sizeof(value));
     if ((REQUEST)->last_call_was_on_header_field && (REQUEST)->header_field != NULL) {
+        char *header = malloc(sizeof(char)*strlen((REQUEST)->header_field)+1);
+        sprintf(header, "%s", (REQUEST)->header_field);
         sprintf(value, "%.*s", (int)length, at);
-        set_or_append_header((REQUEST), (REQUEST)->header_field, value);
+        set_or_append_header((REQUEST), header, value);
     }
 
     (REQUEST)->last_call_was_on_header_field = false;
-    (REQUEST)->header_field = NULL;
     
     return 0;
 }
 
 static int on_body(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->body = malloc(sizeof(char)*(length+1));
-    memset((REQUEST)->body, 0, sizeof((REQUEST)->body));
+    bzero((REQUEST)->body, sizeof((REQUEST)->body));
     sprintf((REQUEST)->body, "%.*s", (int)length, at);
     return 0;
 }

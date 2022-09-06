@@ -16,15 +16,17 @@ typedef struct {
     ev_io write_watcher;
 
     http_parser parser;
-    char *method;
-    char *url;
+    char method[16];
+    char url[256];
+    char path[64];
     struct hashmap *headers;
     char *body;
+    char query_string[128];
 
     int is_cgi;
     int is_bad_request;
     int last_call_was_on_header_field;
-    char *header_field;
+    char header_field[128];
 } http_request;
 
 #define REQUEST_FROM_READ_WATCHER(watcher) \
