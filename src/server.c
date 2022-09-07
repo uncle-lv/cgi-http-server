@@ -28,7 +28,7 @@ Content-length: %ld\r\n\r\n"
 
 static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
-static void parser_request(EV_P_ ev_io *watcher, int revents);
+static void parse_request_data(EV_P_ ev_io *watcher, int revents);
 static void response(EV_P_ ev_io *watcher, int revents);
 static void send_file(http_request *request, const char *path, int status);
 static long get_file_length(FILE *file);
@@ -76,11 +76,11 @@ static void accept_request(EV_P_ ev_io *watcher, int _) {
     http_request *request = request_new();
     request->client_fd = client_fd;
     request->client_addr = client_addr;
-    ev_io_init(&request->read_watcher, parser_request, client_fd, EV_READ);
+    ev_io_init(&request->read_watcher, parse_request_data, client_fd, EV_READ);
     ev_io_start(EV_A_ &request->read_watcher);
 }
 
-static void parser_request(EV_P_ ev_io *watcher, int _) {
+static void parse_request_data(EV_P_ ev_io *watcher, int _) {
     (void)_;
     http_request *request = REQUEST_FROM_READ_WATCHER(watcher);
     char *data = NULL;
@@ -104,7 +104,7 @@ static void parser_request(EV_P_ ev_io *watcher, int _) {
         }
     }  while (nread == BUFFER_SIZE);
 
-    if (0 != parse_request(request, data)) {
+    if (0 != parse_request(request, data, data_len)) {
         request->is_bad_request = true;
     }
 

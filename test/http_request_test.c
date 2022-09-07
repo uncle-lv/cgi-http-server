@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         goto fail;
     }
     parser_settings_init();
-    if (parse_request(request, data) != 0) {
+    if (parse_request(request, data, file_length) != 0) {
         perror("parse faild");
     }
 

@@ -47,6 +47,6 @@ typedef struct {
 
 void parser_settings_init();
 http_request *request_new();
-int parse_request(http_request *request, char *data);
+int parse_request(http_request *request, char *data, size_t len);
 void request_free(http_request *request);
 const char *get_header_value(http_request *request, const char *field);

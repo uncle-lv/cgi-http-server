@@ -65,13 +65,14 @@ http_request *request_new() {
  * @param data http请求数据
  * @return int 解析失败返回-1，成功返回0
  */
-int parse_request(http_request *request, char *data) {
+int parse_request(http_request *request, char *data, size_t len) {
     char suffix[16];
     bzero(suffix, sizeof(suffix));
+    bzero(request->method, sizeof(request->method));
     bzero(request->query_string, sizeof(request->query_string));
-    size_t data_len = strlen(data);
-    size_t nparsed = http_parser_execute(&request->parser, &parser_settings, data, data_len);
-    if (nparsed != data_len) {
+    bzero(request->path, sizeof(request->path));
+    size_t nparsed = http_parser_execute(&request->parser, &parser_settings, data, len);
+    if (nparsed != len) {
         return -1;
     }
 
@@ -181,9 +182,10 @@ static int on_header_field(http_parser* parser, const char* at, size_t length) {
 
 static int on_header_value(http_parser* parser, const char* at, size_t length) {
     char *value = malloc(sizeof(char)*(length+1));
-    bzero(value, sizeof(length+1));
+    bzero(value, sizeof(char)*(length+1));
     if ((REQUEST)->last_call_was_on_header_field && (REQUEST)->header_field != NULL) {
-        char *header = malloc(sizeof(char)*strlen((REQUEST)->header_field)+1);
+        char *header = malloc(sizeof(char)*(strlen((REQUEST)->header_field)+1));
+        bzero(header, sizeof(char)*(strlen((REQUEST)->header_field)+1));
         sprintf(header, "%s", (REQUEST)->header_field);
         sprintf(value, "%.*s", (int)length, at);
         set_or_append_header((REQUEST), header, value);
