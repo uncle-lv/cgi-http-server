@@ -40,7 +40,7 @@ http_request *request_new() {
         return NULL;
     }
 
-    memset(request, 0, sizeof(request));
+    memset(request, 0, sizeof(http_request));
     request->headers = hashmap_new(
         sizeof(header),
         0, 0, 0,
@@ -55,7 +55,7 @@ http_request *request_new() {
     return request;
 }
 
-int parse_request(http_request *request, const char *data) {
+int parse_request(http_request *request, char *data) {
     char suffix[16];
     bzero(suffix, sizeof(suffix));
     bzero(request->query_string, sizeof(request->query_string));
@@ -65,7 +65,10 @@ int parse_request(http_request *request, const char *data) {
         return -1;
     }
 
-    char *method = http_method_str(request->parser.method);
+    request->http_major = request->parser.http_major;
+    request->http_minor = request->parser.http_minor;
+
+    const char *method = http_method_str(request->parser.method);
     sprintf(request->method, "%s", method);
     sscanf(request->url, "%*[^.].%3s", suffix);
     sscanf(request->url, "%*[^?]?%s", request->query_string);
@@ -95,18 +98,20 @@ void request_free(http_request *request) {
     }
 }
 
-char *get_header_value(http_request *request, const char *field) {
+const char *get_header_value(http_request *request, const char *field) {
     header *h = hashmap_get(request->headers, &(header){ .field=field });
     return h->value;
 }
 
-static int request_cmp(const void *a, const void *b, void *udata) {
+static int request_cmp(const void *a, const void *b, void *_) {
+    (void)_;
     const header *ua = a;
     const header *ub = b;
     return strcmp(ua->field, ub->field);
 }
 
-static bool request_iter(const void *item, void *udata) {
+static bool request_iter(const void *item, void *_) {
+    (void)_;
     const header *header = item;
     printf("%s: %s\n", header->field, header->value);
     return true;
@@ -129,15 +134,18 @@ static int on_headers_complete(http_parser* parser) {
     return 0;
 }
 
-static int on_message_complete(http_parser* parser) {
+static int on_message_complete(http_parser* _) {
+    (void)_;
     return 0;
 }
 
-static int on_chunk_header(http_parser* parser) {
+static int on_chunk_header(http_parser* _) {
+    (void)_;
     return 0;
 }
 
-static int on_chunk_complete(http_parser* parser) {
+static int on_chunk_complete(http_parser* _) {
+    (void)_;
     return 0;
 }
 
@@ -148,6 +156,9 @@ static int on_url(http_parser* parser, const char* at, size_t length) {
 }
 
 static int on_status(http_parser* parser, const char* at, size_t length) {
+    (void)parser;
+    (void)at;
+    (void)length;
     return 0;
 }
 
@@ -160,7 +171,7 @@ static int on_header_field(http_parser* parser, const char* at, size_t length) {
 
 static int on_header_value(http_parser* parser, const char* at, size_t length) {
     char *value = malloc(sizeof(char)*(length+1));
-    memset(value, 0, sizeof(value));
+    bzero(value, sizeof(length+1));
     if ((REQUEST)->last_call_was_on_header_field && (REQUEST)->header_field != NULL) {
         char *header = malloc(sizeof(char)*strlen((REQUEST)->header_field)+1);
         sprintf(header, "%s", (REQUEST)->header_field);
@@ -175,7 +186,7 @@ static int on_header_value(http_parser* parser, const char* at, size_t length) {
 
 static int on_body(http_parser* parser, const char* at, size_t length) {
     (REQUEST)->body = malloc(sizeof(char)*(length+1));
-    bzero((REQUEST)->body, sizeof((REQUEST)->body));
+    bzero((REQUEST)->body, sizeof(length+1));
     sprintf((REQUEST)->body, "%.*s", (int)length, at);
     return 0;
 }

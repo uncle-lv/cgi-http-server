@@ -1,4 +1,5 @@
 #include "http_request.h"
+#include "log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +22,7 @@
 #define WWW_PATH "../www"
 #define CGI_PATH "/cgi-bin"
 
-#define RESPONSE_HEADERS "HTTP/1.1 200 OK\r\n\
+#define RESPONSE_HEADERS "HTTP/1.0 %d OK\r\n\
 Content-type: %s\r\n\
 Content-length: %ld\r\n\r\n"
 
@@ -29,7 +30,7 @@ static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
 static void parser_request(EV_P_ ev_io *watcher, int revents);
 static void response(EV_P_ ev_io *watcher, int revents);
-static void send_file(http_request *request, const char *path);
+static void send_file(http_request *request, const char *path, int status);
 static long get_file_length(FILE *file);
 static int execute_cgi(http_request *request, const char *path);
 static void response_400(http_request *request);
@@ -45,6 +46,7 @@ int main(int argc, char *argv[]) {
         port = atoi(argv[1]);
     } else {
         port = PORT;
+        log_warn("The server port is not assigned. Using port :%d by default.", port);
     }
 
     int server_fd = run_serve(port);
@@ -59,7 +61,8 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-static void accept_request(EV_P_ ev_io *watcher, int revents) {
+static void accept_request(EV_P_ ev_io *watcher, int _) {
+    (void)_;
     char addr_str[INET_ADDRSTRLEN];
     struct sockaddr_in client_addr;
     socklen_t clientaddr_len = sizeof(client_addr);
@@ -69,7 +72,6 @@ static void accept_request(EV_P_ ev_io *watcher, int revents) {
         return;
     }
 
-    printf("--- accept connection from %s ---\n", inet_ntop(AF_INET, &client_addr.sin_addr, addr_str, sizeof(addr_str)));
     http_request *request = request_new();
     request->client_fd = client_fd;
     request->client_addr = client_addr;
@@ -77,7 +79,8 @@ static void accept_request(EV_P_ ev_io *watcher, int revents) {
     ev_io_start(EV_A_ &request->read_watcher);
 }
 
-static void parser_request(EV_P_ ev_io *watcher, int revents) {
+static void parser_request(EV_P_ ev_io *watcher, int _) {
+    (void)_;
     http_request *request = REQUEST_FROM_READ_WATCHER(watcher);
     char *data = NULL;
     char buf[BUFFER_SIZE];
@@ -109,7 +112,8 @@ static void parser_request(EV_P_ ev_io *watcher, int revents) {
     ev_io_start(EV_A_ &request->write_watcher);
 }
 
-static void response(EV_P_ ev_io *watcher, int revents) {
+static void response(EV_P_ ev_io *watcher, int _) {
+    (void)_;
     char path[256];
     http_request *request = REQUEST_FROM_WRITE_WATCHER(watcher);
 
@@ -140,7 +144,7 @@ static void response(EV_P_ ev_io *watcher, int revents) {
                 }
             }
 
-            send_file(request, path);
+            send_file(request, path, HTTP_STATUS_OK);
             goto finish;
         } else {
             strcat(path, CGI_PATH);
@@ -155,15 +159,16 @@ finish:
     request_free(request);
 }
 
-static void send_file(http_request *request, const char *path) {
+static void send_file(http_request *request, const char *path, int status) {
+    char addr_str[INET_ADDRSTRLEN];
     FILE *file = NULL;
     char buf[BUFFER_SIZE];
 
     file = fopen(path, "r");
     if (NULL == file) {
-        response_404(request);
+        // response_404(request);
     } else {
-        sprintf(buf, RESPONSE_HEADERS, "text/html", get_file_length(file));
+        sprintf(buf, RESPONSE_HEADERS, status, "text/html", get_file_length(file));
         send(request->client_fd, buf, strlen(buf), 0);
         fgets(buf, BUFFER_SIZE, file);
         send(request->client_fd, buf, strlen(buf), 0);
@@ -172,6 +177,9 @@ static void send_file(http_request *request, const char *path) {
             send(request->client_fd, buf, strlen(buf), 0);
         }
     }
+
+    log_info("%s:%u - \"%s %s HTTP/%u.%u\" %d %s",
+             inet_ntoa(request->client_addr.sin_addr), request->client_addr.sin_port, request->method, request->path, request->http_major, request->http_minor, status, http_status_str(status));
 }
 
 static long get_file_length(FILE *file) {
@@ -242,6 +250,8 @@ static int execute_cgi(http_request *request, const char *path) {
         close(cgi_input[0]);
         waitpid(pid, &status, 0);
     }
+
+    return 0;
 }
 
 static void response_400(http_request *request) {
@@ -249,7 +259,7 @@ static void response_400(http_request *request) {
     memset(path, 0, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/400.html");
-    send_file(request, path);
+    send_file(request, path, HTTP_STATUS_BAD_REQUEST);
 }
 
 static void response_404(http_request *request) {
@@ -257,7 +267,7 @@ static void response_404(http_request *request) {
     memset(path, 0, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/404.html");
-    send_file(request, path);
+    send_file(request, path, HTTP_STATUS_NOT_FOUND);
 }
 
 static void response_500(http_request *request) {
@@ -265,7 +275,7 @@ static void response_500(http_request *request) {
     memset(path, 0, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/500.html");
-    send_file(request, path);
+    send_file(request, path, HTTP_STATUS_INTERNAL_SERVER_ERROR);
 }
 
 static void response_501(http_request *request) {
@@ -273,7 +283,7 @@ static void response_501(http_request *request) {
     memset(path, 0, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/501.html");
-    send_file(request, path);
+    send_file(request, path, HTTP_STATUS_NOT_IMPLEMENTED);
 }
 
 /**
@@ -293,6 +303,6 @@ static int run_serve(int port) {
     bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     listen(server_fd, LOGBACK);
     parser_settings_init();
-    printf("HTTP server is running at %d\n", port);
+    log_info("HTTP server is running at %d", port);
     return server_fd;
 }

@@ -4,8 +4,8 @@
 #include <netinet/in.h>
 
 typedef struct {
-    char *field;
-    char *value;
+    const char *field;
+    const char *value;
 } header;
 
 typedef struct {
@@ -16,6 +16,8 @@ typedef struct {
     ev_io write_watcher;
 
     http_parser parser;
+    unsigned int http_major;
+    unsigned int http_minor;
     char method[16];
     char url[256];
     char path[64];
@@ -37,6 +39,6 @@ typedef struct {
 
 void parser_settings_init();
 http_request *request_new();
-int parse_request(http_request *request, const char *data);
+int parse_request(http_request *request, char *data);
 void request_free(http_request *request);
-char *get_header_value(http_request *request, const char *field);
+const char *get_header_value(http_request *request, const char *field);
