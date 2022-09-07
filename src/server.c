@@ -37,6 +37,7 @@ static void response_400(http_request *request);
 static void response_404(http_request *request);
 static void response_500(http_request *request);
 static void response_501(http_request *request);
+static int check_file_exists(const char *path, int mode);
 
 
 int main(int argc, char *argv[]) {
@@ -144,11 +145,21 @@ static void response(EV_P_ ev_io *watcher, int _) {
                 }
             }
 
+            if (check_file_exists(path, R_OK)) {
+                response_404(request);
+                goto finish;
+            }
+
             send_file(request, path, HTTP_STATUS_OK);
             goto finish;
         } else {
             strcat(path, CGI_PATH);
             strcat(path, request->path);
+
+            if (check_file_exists(path, X_OK)) {
+                response_404(request);
+            }
+
             execute_cgi(request, path);
         }
     }
@@ -160,22 +171,17 @@ finish:
 }
 
 static void send_file(http_request *request, const char *path, int status) {
-    char addr_str[INET_ADDRSTRLEN];
     FILE *file = NULL;
     char buf[BUFFER_SIZE];
 
     file = fopen(path, "r");
-    if (NULL == file) {
-        // response_404(request);
-    } else {
-        sprintf(buf, RESPONSE_HEADERS, status, "text/html", get_file_length(file));
-        send(request->client_fd, buf, strlen(buf), 0);
+    sprintf(buf, RESPONSE_HEADERS, status, "text/html", get_file_length(file));
+    send(request->client_fd, buf, strlen(buf), 0);
+    fgets(buf, BUFFER_SIZE, file);
+    send(request->client_fd, buf, strlen(buf), 0);
+    while (!feof(file)) {
         fgets(buf, BUFFER_SIZE, file);
         send(request->client_fd, buf, strlen(buf), 0);
-        while (!feof(file)) {
-            fgets(buf, BUFFER_SIZE, file);
-            send(request->client_fd, buf, strlen(buf), 0);
-        }
     }
 
     log_info("%s:%u - \"%s %s HTTP/%u.%u\" %d %s",
@@ -215,7 +221,6 @@ static int execute_cgi(http_request *request, const char *path) {
 
     sprintf(buf, "HTTP/1.1 200 OK\r\n");
     send(request->client_fd, buf, strlen(buf), 0);
-    printf("send: %s\n", buf);
     if (0 == pid) {
         dup2(cgi_output[1], STDOUT);
         dup2(cgi_input[0], STDIN);
@@ -226,7 +231,7 @@ static int execute_cgi(http_request *request, const char *path) {
         if (0 == strcasecmp(request->method, "GET")) {
             setenv("QUERY_STRING", request->query_string, 1);
         } else {
-            sprintf(content_length, "%d", strlen(request->body));
+            sprintf(content_length, "%lu", strlen(request->body));
             setenv("CONTENT_LENGTH", content_length, 1);
         }
 
@@ -250,6 +255,9 @@ static int execute_cgi(http_request *request, const char *path) {
         close(cgi_input[0]);
         waitpid(pid, &status, 0);
     }
+
+    log_info("%s:%u - \"%s %s HTTP/%u.%u\" %d %s",
+             inet_ntoa(request->client_addr.sin_addr), request->client_addr.sin_port, request->method, request->path, request->http_major, request->http_minor, HTTP_STATUS_OK, http_status_str(HTTP_STATUS_OK));
 
     return 0;
 }
@@ -305,4 +313,11 @@ static int run_serve(int port) {
     parser_settings_init();
     log_info("HTTP server is running at %d", port);
     return server_fd;
+}
+
+static int check_file_exists(const char *path, int mode) {
+    if (!access(path, mode)) {
+        return 0;
+    }
+    return -1;
 }
