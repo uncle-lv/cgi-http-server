@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
         port = atoi(argv[1]);
     } else {
         port = PORT;
-        log_warn("The server port is not assigned. Using port :%d by default.", port);
+        log_warn("The server port is not assigned. Using port %d by default.", port);
     }
 
     int server_fd = run_serve(port);
@@ -219,7 +219,7 @@ static int execute_cgi(http_request *request, const char *path) {
         return -1;
     }
 
-    sprintf(buf, "HTTP/1.1 200 OK\r\n");
+    sprintf(buf, "HTTP/1.0 200 OK\r\n");
     send(request->client_fd, buf, strlen(buf), 0);
     if (0 == pid) {
         dup2(cgi_output[1], STDOUT);

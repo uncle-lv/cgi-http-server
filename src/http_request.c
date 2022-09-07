@@ -22,6 +22,9 @@ static void set_or_append_header(http_request *request, const char *field, const
 
 static http_parser_settings parser_settings;
 
+/**
+ * @brief 初始化parser_settings，在启动服务器时调用
+ */
 void parser_settings_init() {
     memset(&parser_settings, 0, sizeof(parser_settings));
     parser_settings.on_message_begin = on_message_begin;
@@ -55,6 +58,13 @@ http_request *request_new() {
     return request;
 }
 
+/**
+ * @brief 解析请求
+ * 
+ * @param request request结构体
+ * @param data http请求数据
+ * @return int 解析失败返回-1，成功返回0
+ */
 int parse_request(http_request *request, char *data) {
     char suffix[16];
     bzero(suffix, sizeof(suffix));
