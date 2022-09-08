@@ -312,6 +312,7 @@ static int run_serve(int port) {
     bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     listen(server_fd, LOGBACK);
     parser_settings_init();
+    signal(SIGPIPE, SIG_IGN);
     log_info("HTTP server is running at %d", port);
     return server_fd;
 }
