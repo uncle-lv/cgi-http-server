@@ -184,6 +184,7 @@ static void send_file(http_request *request, const char *path, int status) {
         send(request->client_fd, buf, strlen(buf), 0);
     }
 
+    fclose(file);
     log_info("%s:%u - \"%s %s HTTP/%u.%u\" %d %s",
              inet_ntoa(request->client_addr.sin_addr), request->client_addr.sin_port, request->method, request->path, request->http_major, request->http_minor, status, http_status_str(status));
 }
