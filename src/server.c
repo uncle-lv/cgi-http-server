@@ -23,8 +23,8 @@
 #define CGI_PATH "/cgi-bin"
 
 #define RESPONSE_HEADERS "HTTP/1.0 %d OK\r\n\
-Content-type: %s\r\n\
-Content-length: %ld\r\n\r\n"
+Content-Type: %s\r\n\
+Content-Length: %ld\r\n\r\n"
 
 static int run_serve(int port);
 static void accept_request(EV_P_ ev_io *watcher, int revents);
@@ -160,7 +160,9 @@ static void response(EV_P_ ev_io *watcher, int _) {
                 response_404(request);
             }
 
-            execute_cgi(request, path);
+            if (-1 == execute_cgi(request, path)) {
+                response_500(request);
+            }
         }
     }
 
@@ -220,8 +222,6 @@ static int execute_cgi(http_request *request, const char *path) {
         return -1;
     }
 
-    sprintf(buf, "HTTP/1.0 200 OK\r\n");
-    send(request->client_fd, buf, strlen(buf), 0);
     if (0 == pid) {
         dup2(cgi_output[1], STDOUT);
         dup2(cgi_input[0], STDIN);
@@ -232,12 +232,10 @@ static int execute_cgi(http_request *request, const char *path) {
         if (0 == strcasecmp(request->method, "GET")) {
             setenv("QUERY_STRING", request->query_string, 1);
         } else {
-            sprintf(content_length, "%lu", strlen(request->body));
-            setenv("CONTENT_LENGTH", content_length, 1);
+            setenv("CONTENT_LENGTH", get_header_value(request, "Content-Length"), 1);
         }
 
         if (-1 == execl(path, NULL)) {
-            perror("execl: ");
             response_500(request);
         }
         exit(0);
@@ -248,6 +246,8 @@ static int execute_cgi(http_request *request, const char *path) {
             write(cgi_input[1], request->body, strlen(request->body));
         }
 
+        sprintf(buf, "%s", "HTTP/1.0 200 OK\r\n");
+        send(request->client_fd, buf, strlen(buf), 0);
         while (read(cgi_output[0], buf, BUFFER_SIZE) > 0) {
             send(request->client_fd, buf, strlen(buf), 0);
         }
@@ -258,7 +258,7 @@ static int execute_cgi(http_request *request, const char *path) {
     }
 
     log_info("%s:%u - \"%s %s HTTP/%u.%u\" %d %s",
-             inet_ntoa(request->client_addr.sin_addr), request->client_addr.sin_port, request->method, request->path, request->http_major, request->http_minor, HTTP_STATUS_OK, http_status_str(HTTP_STATUS_OK));
+             inet_ntoa(request->client_addr.sin_addr), request->client_addr.sin_port, request->method, request->url, request->http_major, request->http_minor, HTTP_STATUS_OK, http_status_str(HTTP_STATUS_OK));
 
     return 0;
 }
