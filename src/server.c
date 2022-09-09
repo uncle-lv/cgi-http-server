@@ -33,11 +33,13 @@ static void response(EV_P_ ev_io *watcher, int revents);
 static void send_file(http_request *request, const char *path, int status);
 static long get_file_length(FILE *file);
 static int execute_cgi(http_request *request, const char *path);
-static void response_400(http_request *request);
-static void response_404(http_request *request);
-static void response_500(http_request *request);
-static void response_501(http_request *request);
+static void response_error(http_request *request, const char *file, int status);
 static int check_file_exists(const char *path, int mode);
+
+#define response_400(request) do { response_error((request), "/400.html", HTTP_STATUS_BAD_REQUEST); } while (0)
+#define response_404(request) do { response_error((request), "/404.html", HTTP_STATUS_NOT_FOUND); } while (0)
+#define response_500(request) do { response_error((request), "/500.html", HTTP_STATUS_INTERNAL_SERVER_ERROR); } while (0)
+#define response_501(request) do { response_error((request), "/501.html", HTTP_STATUS_NOT_IMPLEMENTED); } while (0)
 
 
 int main(int argc, char *argv[]) {
@@ -273,36 +275,12 @@ static int execute_cgi(http_request *request, const char *path) {
     return 0;
 }
 
-static void response_400(http_request *request) {
+static void response_error(http_request *request, const char *file, int status) {
     char path[128];
     bzero(path, sizeof(path));
     strcat(path, WWW_PATH);
-    strcat(path, "/400.html");
-    send_file(request, path, HTTP_STATUS_BAD_REQUEST);
-}
-
-static void response_404(http_request *request) {
-    char path[128];
-    bzero(path, sizeof(path));
-    strcat(path, WWW_PATH);
-    strcat(path, "/404.html");
-    send_file(request, path, HTTP_STATUS_NOT_FOUND);
-}
-
-static void response_500(http_request *request) {
-    char path[128];
-    bzero(path, sizeof(path));
-    strcat(path, WWW_PATH);
-    strcat(path, "/500.html");
-    send_file(request, path, HTTP_STATUS_INTERNAL_SERVER_ERROR);
-}
-
-static void response_501(http_request *request) {
-    char path[128];
-    bzero(path, sizeof(path));
-    strcat(path, WWW_PATH);
-    strcat(path, "/501.html");
-    send_file(request, path, HTTP_STATUS_NOT_IMPLEMENTED);
+    strcat(path, file);
+    send_file(request, path, status);
 }
 
 /**
