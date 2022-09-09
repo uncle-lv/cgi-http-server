@@ -1,4 +1,3 @@
-
 all: server
 
 LIBS = -lev http_parser.c hashmap.c http_request.c log.c -DLOG_USE_COLOR

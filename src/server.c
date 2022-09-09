@@ -17,8 +17,8 @@
 
 #define BUFFER_SIZE 2048
 #define HEADER_BUFFER_SIZE 256
-#define LOGBACK 20
-#define PORT 5000
+#define DEFAULT_BACKLOG 1024
+#define DEFAULT_PORT 5000
 #define WWW_PATH "../www"
 #define CGI_PATH "/cgi-bin"
 
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     if (argc == 2) {
         port = atoi(argv[1]);
     } else {
-        port = PORT;
+        port = DEFAULT_PORT;
         log_warn("The server port is not assigned. Using port %d by default.", port);
     }
 
@@ -205,8 +205,8 @@ static int execute_cgi(http_request *request, const char *path) {
     pid_t pid;
     int status;
 
-    memset(buf, 0, BUFFER_SIZE);
-    memset(content_length, 0, sizeof(content_length));
+    bzero(buf, BUFFER_SIZE);
+    bzero(content_length, sizeof(content_length));
 
     if (pipe(cgi_output) < 0) {
         return -1;
@@ -249,7 +249,7 @@ static int execute_cgi(http_request *request, const char *path) {
         }
 
         while (read(cgi_output[0], buf, BUFFER_SIZE) > 0) {
-            send(request->client_fd, buf, BUFFER_SIZE, 0);
+            send(request->client_fd, buf, strlen(buf), 0);
         }
 
         close(cgi_output[0]);
@@ -265,7 +265,7 @@ static int execute_cgi(http_request *request, const char *path) {
 
 static void response_400(http_request *request) {
     char path[128];
-    memset(path, 0, sizeof(path));
+    bzero(path, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/400.html");
     send_file(request, path, HTTP_STATUS_BAD_REQUEST);
@@ -273,7 +273,7 @@ static void response_400(http_request *request) {
 
 static void response_404(http_request *request) {
     char path[128];
-    memset(path, 0, sizeof(path));
+    bzero(path, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/404.html");
     send_file(request, path, HTTP_STATUS_NOT_FOUND);
@@ -281,7 +281,7 @@ static void response_404(http_request *request) {
 
 static void response_500(http_request *request) {
     char path[128];
-    memset(path, 0, sizeof(path));
+    bzero(path, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/500.html");
     send_file(request, path, HTTP_STATUS_INTERNAL_SERVER_ERROR);
@@ -289,7 +289,7 @@ static void response_500(http_request *request) {
 
 static void response_501(http_request *request) {
     char path[128];
-    memset(path, 0, sizeof(path));
+    bzero(path, sizeof(path));
     strcat(path, WWW_PATH);
     strcat(path, "/501.html");
     send_file(request, path, HTTP_STATUS_NOT_IMPLEMENTED);
@@ -310,7 +310,7 @@ static int run_serve(int port) {
     server_addr.sin_port = htons(port);
 
     bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    listen(server_fd, LOGBACK);
+    listen(server_fd, DEFAULT_BACKLOG);
     parser_settings_init();
     signal(SIGPIPE, SIG_IGN);
     log_info("HTTP server is running at %d", port);

@@ -26,7 +26,7 @@ static http_parser_settings parser_settings;
  * @brief 初始化parser_settings，在启动服务器时调用
  */
 void parser_settings_init() {
-    memset(&parser_settings, 0, sizeof(parser_settings));
+    bzero(&parser_settings, sizeof(parser_settings));
     parser_settings.on_message_begin = on_message_begin;
     parser_settings.on_url = on_url;
     parser_settings.on_status = on_status;
@@ -43,7 +43,7 @@ http_request *request_new() {
         return NULL;
     }
 
-    memset(request, 0, sizeof(http_request));
+    bzero(request, sizeof(http_request));
     request->headers = hashmap_new(
         sizeof(header),
         0, 0, 0,
