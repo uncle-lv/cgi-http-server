@@ -204,6 +204,7 @@ static int execute_cgi(http_request *request, const char *path) {
     int cgi_output[2];
     int cgi_input[2];
     char content_length[16];
+    char *filename;
     pid_t pid;
     int status;
 
@@ -235,7 +236,9 @@ static int execute_cgi(http_request *request, const char *path) {
             setenv("CONTENT_LENGTH", get_header_value(request, "Content-Length"), 1);
         }
 
-        if (-1 == execl(path, NULL)) {
+        filename = strrchr(request->path, '/');
+        filename++;
+        if (-1 == execl(path, filename, NULL)) {
             response_500(request);
         }
         exit(0);
@@ -253,7 +256,7 @@ static int execute_cgi(http_request *request, const char *path) {
         }
 
         close(cgi_output[0]);
-        close(cgi_input[0]);
+        close(cgi_input[1]);
         waitpid(pid, &status, 0);
     }
 
