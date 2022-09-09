@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 }
 
 static void accept_request(EV_P_ ev_io *watcher, int _) {
-    (void)_;
+    (void)_;                         // 防止GCC的unused警告
     char addr_str[INET_ADDRSTRLEN];
     struct sockaddr_in client_addr;
     socklen_t clientaddr_len = sizeof(client_addr);
@@ -199,6 +199,13 @@ static long get_file_length(FILE *file) {
     return file_length;
 }
 
+/**
+ * @brief 执行CGI脚本
+ * 
+ * @param request 请求结构体
+ * @param path CGI文件路径
+ * @return int 成功执行返回0，失败返回-1
+ */
 static int execute_cgi(http_request *request, const char *path) {
     char buf[BUFFER_SIZE];
     int cgi_output[2];

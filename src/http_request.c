@@ -5,9 +5,12 @@
 
 #define REQUEST ((http_request *)parser->data)
 
+// hashmap回调函数
 static int request_cmp(const void *a, const void *b, void *udata);
 static bool request_iter(const void *item, void *udata);
 static uint64_t request_hash(const void *item, uint64_t seed0, uint64_t seed1);
+
+// http parser回调函数
 static int on_message_begin(http_parser* parser);
 static int on_headers_complete(http_parser* parser);
 static int on_message_complete(http_parser* parser);
@@ -18,6 +21,7 @@ static int on_status(http_parser* parser, const char* at, size_t length);
 static int on_header_field(http_parser* parser, const char* at, size_t length);
 static int on_header_value(http_parser* parser, const char* at, size_t length);
 static int on_body(http_parser* parser, const char* at, size_t length);
+
 static void set_or_append_header(http_request *request, const char *field, const char *value);
 
 static http_parser_settings parser_settings;
