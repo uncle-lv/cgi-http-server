@@ -15,7 +15,7 @@
 
 1.安装libev
 ```bash
-sudo apt install libev-dev
+sudo apt install -y libev-dev python3
 ```
 
 2.将项目代码拉取到本地
@@ -36,6 +36,35 @@ make
 <br>
 
 > 与tiny-httpd类似，cgi http server也提供了`/index.html`、`/login.html`等几个url路由供使用者测试。
+
+<br>
+
+## 代码结构
+
+```
+src
+├── hashmap.c
+├── hashmap.h
+├── http_parser.c
+├── http_parser.h
+├── http_request.c
+├── http_request.h
+├── log.c
+├── log.h
+├── Makefile
+├── server
+└── server.c
+```
+
+阅读源码请重点阅读http_request.*和server.c，其余文件皆为第三方库。
+
+<br>
+
+[hashmap](https://github.com/tidwall/hashmap.c)：一个C语言实现的hashmap。
+
+[http_parser](https://github.com/nodejs/http-parser)：C语言实现http请求/响应解析库。
+
+[log.c](https://github.com/rxi/log.c)：C99实现的一个简单日志库。
 
 ## 贡献
 
