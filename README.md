@@ -1,6 +1,6 @@
 # CGI HTTP Server
 
-![license](https://img.shields.io/github/license/uncle-lv/cgi-http-server)  ![stars](https://img.shields.io/github/stars/uncle-lv/cgi-http-server)  ![issues](https://img.shields.io/github/issues/uncle-lv/cgi-http-server)  ![fork](https://img.shields.io/github/forks/uncle-lv/cgi-http-server)
+![license](https://img.shields.io/github/license/uncle-lv/cgi-http-server)  ![stars](https://img.shields.io/github/stars/uncle-lv/cgi-http-server)  ![issues](https://img.shields.io/github/issues/uncle-lv/cgi-http-server)  ![fork](https://img.shields.io/github/forks/uncle-lv/cgi-http-server)  ![platform](https://img.shields.io/badge/platform-only%20linux-orange)
 
 一个参考自tiny-httpd、使用了[libev](http://software.schmorp.de/pkg/libev)、[http-parser](https://github.com/nodejs/http-parser)、[hashmap](https://github.com/tidwall/hashmap.c)、[log.c](https://github.com/rxi/log.c)等第三方库进行了功能增强的CGI Web Server。它可以帮助你大致地了解Web Server的工作原理。
 
@@ -36,6 +36,8 @@ make
 <br>
 
 > 与tiny-httpd类似，cgi http server也提供了`/index.html`、`/login.html`等几个url路由供使用者测试。
+> 
+> CGI脚本需要有执行权限。
 
 <br>
 
