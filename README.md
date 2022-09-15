@@ -2,9 +2,9 @@
 
 ![license](https://img.shields.io/github/license/uncle-lv/cgi-http-server)  ![stars](https://img.shields.io/github/stars/uncle-lv/cgi-http-server)  ![issues](https://img.shields.io/github/issues/uncle-lv/cgi-http-server)  ![fork](https://img.shields.io/github/forks/uncle-lv/cgi-http-server)  ![platform](https://img.shields.io/badge/platform-only%20linux-orange)
 
-A CGI Web Server which is inspired by tiny-httpd and enhanced with the third-party libraries, *[libev](http://software.schmorp.de/pkg/libev)*, *[http-parser](https://github.com/nodejs/http-parser)*, *[hashmap](https://github.com/tidwall/hashmap.c)*, *[log.c](https://github.com/rxi/log.c)*. It shows you how a web server works briefly.
+[Chinese](https://github.com/uncle-lv/cgi-http-server/blob/main/README_zh.md) | [English](https://github.com/uncle-lv/cgi-http-server/blob/main/README.md)
 
-<br>
+A CGI Web Server which is inspired by tiny-httpd and enhanced with the third-party libraries, *[libev](http://software.schmorp.de/pkg/libev)*, *[http-parser](https://github.com/nodejs/http-parser)*, *[hashmap](https://github.com/tidwall/hashmap.c)*, *[log.c](https://github.com/rxi/log.c)*. It shows you how a web server works briefly.
 
 ## Functions
 
@@ -12,8 +12,6 @@ A CGI Web Server which is inspired by tiny-httpd and enhanced with the third-par
 - [x] Support GET, POST method
 - [x] Support CGI
 - [x] A simple logger
-
-<br>
 
 ## Usage
 
@@ -43,8 +41,6 @@ make
 > 
 > You should have the execute permission of CGI scripts.
 
-<br>
-
 ## Code Structure
 
 ```
@@ -64,33 +60,23 @@ src
 
 If you want to read the source code, please focus on `http_request.*` and `server.c`. The other files are third-party libraries.
 
-<br>
-
 [hashmap](https://github.com/tidwall/hashmap.c): Hashmap implementation in C.
 
 [http_parser](https://github.com/nodejs/http-parser): HTTP request/response parser for C.
 
 [log.c](https://github.com/rxi/log.c): A simple logging library implemented in C99.
 
-<br>
-
 ## Contributions
 
 Looking forward to Any issue or pull request from you.
-
-<br>
 
 ## Others
 
 **Maybe** implement the whole HTTP/1.0 and CGI/1.1 in the future.
 
-<br>
-
 ## License
 
 [MIT](https://github.com/uncle-lv/cgi-http-server/blob/main/LICENSE)
-
-<br>
 
 ## Thanks
 

@@ -2,9 +2,9 @@
 
 ![license](https://img.shields.io/github/license/uncle-lv/cgi-http-server)  ![stars](https://img.shields.io/github/stars/uncle-lv/cgi-http-server)  ![issues](https://img.shields.io/github/issues/uncle-lv/cgi-http-server)  ![fork](https://img.shields.io/github/forks/uncle-lv/cgi-http-server)  ![platform](https://img.shields.io/badge/platform-only%20linux-orange)
 
-一个参考自tiny-httpd、使用了[libev](http://software.schmorp.de/pkg/libev)、[http-parser](https://github.com/nodejs/http-parser)、[hashmap](https://github.com/tidwall/hashmap.c)、[log.c](https://github.com/rxi/log.c)等第三方库进行了功能增强的CGI Web Server。它可以帮助你大致地了解Web Server的工作原理。
+[中文](https://github.com/uncle-lv/cgi-http-server/blob/main/README_zh.md) | [英文](https://github.com/uncle-lv/cgi-http-server/blob/main/README.md)
 
-<br>
+一个参考自tiny-httpd、使用了[libev](http://software.schmorp.de/pkg/libev)、[http-parser](https://github.com/nodejs/http-parser)、[hashmap](https://github.com/tidwall/hashmap.c)、[log.c](https://github.com/rxi/log.c)等第三方库进行了功能增强的CGI Web Server。它可以帮助你大致地了解Web Server的工作原理。
 
 ## 已实现的功能
 
@@ -12,8 +12,6 @@
 - [x] GET、POST请求处理
 - [x] 支持CGI协议
 - [x] 日志输出
-
-<br>
 
 ## 使用
 
@@ -43,8 +41,6 @@ make
 > 
 > CGI脚本需要有执行权限。
 
-<br>
-
 ## 代码结构
 
 ```
@@ -64,33 +60,23 @@ src
 
 阅读源码请重点阅读http_request.*和server.c，其余文件皆为第三方库。
 
-<br>
-
 [hashmap](https://github.com/tidwall/hashmap.c)：一个C语言实现的hashmap。
 
 [http_parser](https://github.com/nodejs/http-parser)：C语言实现http请求/响应解析库。
 
 [log.c](https://github.com/rxi/log.c)：C99实现的一个简单日志库。
 
-<br>
-
 ## 贡献
 
 期待来自你的issue或pull request。
-
-<br>
 
 ## 其他
 
 **也许**会在后续计划中实现完整的HTTP/1.0与CGI/1.1协议。
 
-<br>
-
 ## 协议
 
 [MIT](https://github.com/uncle-lv/cgi-http-server/blob/main/LICENSE)
-
-<br>
 
 ## 鸣谢
 
