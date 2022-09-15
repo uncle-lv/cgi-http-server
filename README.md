@@ -2,46 +2,50 @@
 
 ![license](https://img.shields.io/github/license/uncle-lv/cgi-http-server)  ![stars](https://img.shields.io/github/stars/uncle-lv/cgi-http-server)  ![issues](https://img.shields.io/github/issues/uncle-lv/cgi-http-server)  ![fork](https://img.shields.io/github/forks/uncle-lv/cgi-http-server)  ![platform](https://img.shields.io/badge/platform-only%20linux-orange)
 
-一个参考自tiny-httpd、使用了[libev](http://software.schmorp.de/pkg/libev)、[http-parser](https://github.com/nodejs/http-parser)、[hashmap](https://github.com/tidwall/hashmap.c)、[log.c](https://github.com/rxi/log.c)等第三方库进行了功能增强的CGI Web Server。它可以帮助你大致地了解Web Server的工作原理。
+A CGI Web Server which is inspired by tiny-httpd and enhanced with the third-party libraries, *[libev](http://software.schmorp.de/pkg/libev)*, *[http-parser](https://github.com/nodejs/http-parser)*, *[hashmap](https://github.com/tidwall/hashmap.c)*, *[log.c](https://github.com/rxi/log.c)*. It shows you how a web server works briefly.
 
-## 已实现的功能
+<br>
 
-- [x] HTTP请求的解析与封装
-- [x] GET、POST请求处理
-- [x] 支持CGI协议
-- [x] 日志输出
+## Functions
 
-## 使用
+- [x] Parse HTTP request
+- [x] Support GET, POST method
+- [x] Support CGI
+- [x] A simple logger
 
-1.安装libev
+<br>
+
+## Usage
+
+1.Install libev and Python3.
 ```bash
 sudo apt install -y libev-dev python3
 ```
 
-2.将项目代码拉取到本地
+2.Pull the source code.
 ```bash
 git clone https://github.com/uncle-lv/cgi-http-server.git
 ```
 
-3.进入`src`目录，使用`make`命令构建项目
+3.Into the directory `src`, and run `make` to compile the code.
 ```bash
 make
 ```
 
-4、运行服务器（端口号是可选参数）
+4、Run CGI Server (the argument `port` is optional)
 ```bash
 ./server {port}
 ```
 
 <br>
 
-> 与tiny-httpd类似，cgi http server也提供了`/index.html`、`/login.html`等几个url路由供使用者测试。
+> There are several urls for testing, `/index.html`、`/login.html` and etc.
 > 
-> CGI脚本需要有执行权限。
+> You should have the execute permission of CGI scripts.
 
 <br>
 
-## 代码结构
+## Code Structure
 
 ```
 src
@@ -58,29 +62,37 @@ src
 └── server.c
 ```
 
-阅读源码请重点阅读http_request.*和server.c，其余文件皆为第三方库。
+If you want to read the source code, please focus on `http_request.*` and `server.c`. The other files are third-party libraries.
 
 <br>
 
-[hashmap](https://github.com/tidwall/hashmap.c)：一个C语言实现的hashmap。
+[hashmap](https://github.com/tidwall/hashmap.c): Hashmap implementation in C.
 
-[http_parser](https://github.com/nodejs/http-parser)：C语言实现http请求/响应解析库。
+[http_parser](https://github.com/nodejs/http-parser): HTTP request/response parser for C.
 
-[log.c](https://github.com/rxi/log.c)：C99实现的一个简单日志库。
+[log.c](https://github.com/rxi/log.c): A simple logging library implemented in C99.
 
-## 贡献
+<br>
 
-期待来自你的issue或pull request。
+## Contributions
 
-## 其他
+Looking forward to Any issue or pull request from you.
 
-**也许**会在后续计划中实现完整的HTTP/1.0与CGI/1.1协议。
+<br>
 
-## 协议
+## Others
+
+**Maybe** implement the whole HTTP/1.0 and CGI/1.1 in the future.
+
+<br>
+
+## License
 
 [MIT](https://github.com/uncle-lv/cgi-http-server/blob/main/LICENSE)
 
-## 鸣谢
+<br>
+
+## Thanks
 
 - [tiny-httpd](http://tinyhttpd.sourceforge.net)
 - [libev](http://software.schmorp.de/pkg/libev)
@@ -88,4 +100,3 @@ src
 - [hashmap](https://github.com/tidwall/hashmap.c)
 - [bjoern](https://github.com/jonashaag/bjoern)
 - [log.c](https://github.com/rxi/log.c)
-
